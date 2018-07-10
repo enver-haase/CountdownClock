@@ -2,6 +2,7 @@ package org.vaadin.kim.countdownclock.client.ui;
 
 import org.vaadin.kim.countdownclock.CountdownClock;
 import org.vaadin.kim.countdownclock.client.ui.VCountdownClock.CountdownEndedListener;
+import org.vaadin.kim.countdownclock.client.ui.CountdownClockState.Direction;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.ui.Widget;
@@ -11,8 +12,7 @@ import com.vaadin.client.ui.AbstractComponentConnector;
 import com.vaadin.shared.ui.Connect;
 
 @Connect(CountdownClock.class)
-public class CountdownClockConnector extends AbstractComponentConnector
-		implements CountdownEndedListener {
+public class CountdownClockConnector extends AbstractComponentConnector implements CountdownEndedListener {
 
 	/**
 	 * 
@@ -45,10 +45,19 @@ public class CountdownClockConnector extends AbstractComponentConnector
 	@Override
 	public void onStateChanged(StateChangeEvent stateChangeEvent) {
 		super.onStateChanged(stateChangeEvent);
-		getWidget().setTime(getState().getCountdownTarget());
-		getWidget().setTimeFormat(getState().getTimeFormat());
-		getWidget().setNeglectHigherUnits(getState().isNeglectHigherUnits());
-		getWidget().startClock();
+		VCountdownClock w = getWidget();
+		w.setContinueAfterEnd(getState().isContinueAfterEnd());
+		w.setTimeFormat(getState().getTimeFormat());
+		w.setNeglectHigherUnits(getState().isNeglectHigherUnits());
+		if (stateChangeEvent.hasPropertyChanged("counterStart") || stateChangeEvent.hasPropertyChanged("counterTarget")
+				|| stateChangeEvent.hasPropertyChanged("counterDirection")) {
+			w.setTime(getState().getCounterStart());
+			w.setEndTime(getState().getCounterTarget());
+			w.setDirection(getState().getCounterDirection() == Direction.UP
+					? org.vaadin.kim.countdownclock.client.ui.VCountdownClock.Direction.UP
+					: org.vaadin.kim.countdownclock.client.ui.VCountdownClock.Direction.DOWN);
+			w.startClock();
+		}
 	}
 
 	public void countdownEnded() {

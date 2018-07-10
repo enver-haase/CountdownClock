@@ -7,6 +7,7 @@ import javax.servlet.annotation.WebServlet;
 
 import org.vaadin.kim.countdownclock.CountdownClock;
 import org.vaadin.kim.countdownclock.CountdownClock.EndEventListener;
+import org.vaadin.kim.countdownclock.client.ui.CountdownClockState.Direction;
 
 import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.server.VaadinRequest;
@@ -43,10 +44,10 @@ public class DemoUI extends UI {
 		CountdownClock clock2 = new CountdownClock();
 		Calendar cal = Calendar.getInstance();
 		cal.add(Calendar.SECOND, 10);
-		cal.add(Calendar.DAY_OF_MONTH, 2);
-		clock2.setDate(cal.getTime());
+		cal.add(Calendar.HOUR, 2);
 		clock2.setNeglectHigherUnits(true);
-		clock2.setFormat("%s");
+		clock2.setFormat("%m : %s.%ts");
+		clock2.startCountdownTo(cal.getTime());
 		layout.addComponent(clock2);
 
 		layout.addComponent(new Label("...or two.. :"));
@@ -54,7 +55,7 @@ public class DemoUI extends UI {
 		CountdownClock clock1 = new CountdownClock();
 		Calendar c = Calendar.getInstance();
 		c.set(c.get(Calendar.YEAR) + 1, 0, 1, 0, 0, 0);
-		clock1.setDate(c.getTime());
+		clock1.startCountdownTo(c.getTime());
 		clock1.setFormat("<span style='font: bold 13px Arial; margin: 10px'>"
 				+ "Time until new year: %d days, %h hours, %m minutes and %s seconds</span>");
 		clock1.setHeight("40px");
@@ -71,7 +72,7 @@ public class DemoUI extends UI {
 				event.getButton().setEnabled(false);
 				Calendar c = Calendar.getInstance();
 				c.add(Calendar.SECOND, 10);
-				clock.setDate(c.getTime());
+				clock.startCountdownTo(c.getTime()).continueAfterEnd(true);
 				clock.setFormat("<span style='font: bold 25px Arial; margin: 10px'>"
 						+ "This page will self-destruct in %s.%ts seconds.</span>");
 
@@ -81,6 +82,8 @@ public class DemoUI extends UI {
 								.show("Ok, implementing the page destruction was"
 										+ " kinda hard, so could you please just imagine"
 										+ " it happening?", Notification.Type.ERROR_MESSAGE);
+						clock.setFormat("<span style='font: bold 25px Arial; margin: 10px'>"
+								+ "This page has self-destructed %s.%ts seconds ago.</span>");
 					}
 				});
 				layout.addComponent(clock);

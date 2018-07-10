@@ -9,13 +9,25 @@ import com.google.gwt.user.client.ui.Widget;
 
 public class VCountdownClock extends Widget {
 
+	public interface CountdownEndedListener {
+		public void countdownEnded();
+	}
+
+	public static enum Direction {
+		UP, DOWN
+	}
+
 	/** Set the tagname used to statically resolve widget from UIDL. */
 	public static final String TAGNAME = "countdownclock";
 
 	/** Set the CSS class name to allow styling. */
 	public static final String CLASSNAME = "v-" + TAGNAME;
 
+	public static final String CLASSNAME_OVERTIME = CLASSNAME + "-overtime";
+
 	private long time = 0;
+	private Long endTime;
+	private boolean overtime = false;
 
 	protected Counter counter = new Counter();
 
@@ -36,6 +48,7 @@ public class VCountdownClock extends Widget {
 	// second
 	protected int aSecond = 1000;
 
+	protected Direction direction = Direction.DOWN;
 	protected int timerInterval = 1000;
 
 	/**
@@ -51,16 +64,19 @@ public class VCountdownClock extends Widget {
 
 	/**
 	 * Neglect higher units; so if we have 2 days and 3 hours left that would mean
-	 * 27 hours. Set to true if you want %h to return 3 and not 27.
-	 * Note %h would return 3 anyway in case a %d is detected in the format string.
+	 * 27 hours. Set to true if you want %h to return 3 and not 27. Note %h would
+	 * return 3 anyway in case a %d is detected in the format string.
 	 *
-	 * @param neglect Whether or not to neglect higher units.
+	 * @param neglect
+	 *            Whether or not to neglect higher units.
 	 */
-	protected void setNeglectHigherUnits(boolean neglect){
+	protected void setNeglectHigherUnits(boolean neglect) {
 		this.neglectHigher = neglect;
 	}
 
 	private boolean neglectHigher = false;
+
+	private boolean continueAfterEnd = false;
 
 	protected void setTimeFormat(String format) {
 
@@ -77,7 +93,11 @@ public class VCountdownClock extends Widget {
 				format = format.substring(pos);
 				String type = format.substring(0, 2);
 				int removeChars = 2;
-				if (type.equals("%d")) {
+				if (type.equals("%-")) {
+					TimeString ts = new TimeString(TimeType.SIGN);
+					formatStrings.add(ts);
+					formatsPresent.add(TimeType.SIGN);
+				}else if (type.equals("%d")) {
 					TimeString ts = new TimeString(TimeType.DAYS);
 					formatStrings.add(ts);
 					formatsPresent.add(TimeType.DAYS);
@@ -105,8 +125,7 @@ public class VCountdownClock extends Widget {
 				if (formatStrings.size() <= 1) {
 					formatPrefix = before;
 				} else {
-					formatStrings.get(formatStrings.size() - 2).setPostfix(
-							before);
+					formatStrings.get(formatStrings.size() - 2).setPostfix(before);
 				}
 
 				format = format.substring(removeChars);
@@ -114,8 +133,7 @@ public class VCountdownClock extends Widget {
 				if (formatStrings.size() < 1) {
 					formatPrefix = format;
 				} else {
-					formatStrings.get(formatStrings.size() - 1).setPostfix(
-							format);
+					formatStrings.get(formatStrings.size() - 1).setPostfix(format);
 				}
 				format = "";
 			}
@@ -134,32 +152,57 @@ public class VCountdownClock extends Widget {
 		}
 	}
 
-	public void startClock() {
-		counter.scheduleRepeating(timerInterval);
-		counter.run();
-	}
+	private String format(long time) {
+		if (time < 0) {
+			time = time * -1;
+		}
 
-	protected void updateLabel() {
 		String str = "";
 		if (formatPrefix != null) {
 			str += formatPrefix;
 		}
 
 		for (TimeString ts : formatStrings) {
-			str += ts.getValue(getTime());
+			str += ts.getValue(time);
 		}
+		return str;
+	}
 
-		getElement().setInnerHTML(str);
+	public void startClock() {
+		counter.scheduleRepeating(timerInterval);
+		overtime = false;
+		counter.run();
+	}
+
+	protected void updateLabel() {
+		getElement().setInnerHTML(format(getTime()));
 	}
 
 	protected class Counter extends Timer {
 		@Override
 		public void run() {
-			setTime(getTime() - timerInterval);
-			if (getTime() <= 0) {
-				cancel();
-				fireEndEvent();
-				setTime(0);
+			setTime(getTime() + ((direction == Direction.UP ? 1 : -1) * timerInterval));
+
+			if (getEndTime() != null && ((direction == Direction.UP && getTime() >= getEndTime())
+					|| (direction == Direction.DOWN && getTime() <= getEndTime()))) {
+				// overtime
+				if (overtime == false) {
+					fireEndEvent();
+				}
+				if (getContinueAfterEnd() == false) {
+					cancel();
+					setTime(getEndTime());
+					return;
+				} else {
+					if (overtime == false) {
+						addStyleName(CLASSNAME_OVERTIME);
+					}
+				}
+				if (overtime == false) {
+					overtime = true;
+				}
+			} else {
+				removeStyleName(CLASSNAME_OVERTIME);
 			}
 			updateLabel();
 		}
@@ -184,7 +227,12 @@ public class VCountdownClock extends Widget {
 		}
 
 		public String getValue(long milliseconds) {
-			if (type.equals(TimeType.DAYS)) {
+			boolean negative = milliseconds < 0;
+			milliseconds = negative ? milliseconds * -1 : milliseconds;
+
+			if (type.equals(TimeType.SIGN)) {
+				return negative ? "-" : "";
+			} else if (type.equals(TimeType.DAYS)) {
 				return getDays(milliseconds) + postfix;
 			} else if (type.equals(TimeType.HOURS)) {
 				// Check if a day exists in the format, in that case remove all
@@ -261,7 +309,7 @@ public class VCountdownClock extends Widget {
 	}
 
 	protected enum TimeType {
-		DAYS, HOURS, MINUTES, SECONDS, TENTH_OF_A_SECONDS
+		DAYS, HOURS, MINUTES, SECONDS, TENTH_OF_A_SECONDS, SIGN
 	};
 
 	@Override
@@ -284,11 +332,31 @@ public class VCountdownClock extends Widget {
 		this.time = time;
 	}
 
-	public interface CountdownEndedListener {
-		public void countdownEnded();
+	public Direction getDirection() {
+		return direction;
+	}
+
+	public void setDirection(Direction direction) {
+		this.direction = direction;
+	}
+
+	public Long getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(Long counterTarget) {
+		this.endTime = counterTarget;
+	}
+
+	public boolean getContinueAfterEnd() {
+		return continueAfterEnd;
 	}
 
 	public void addListener(CountdownEndedListener listener) {
 		listeners.add(listener);
+	}
+
+	public void setContinueAfterEnd(boolean continueAfterEnd) {
+		this.continueAfterEnd = continueAfterEnd;
 	}
 }
