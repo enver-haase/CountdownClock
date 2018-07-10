@@ -1,6 +1,7 @@
 package org.vaadin.kim.countdownclock.client.ui;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import com.google.gwt.dom.client.Document;
@@ -25,6 +26,7 @@ public class VCountdownClock extends Widget {
 
 	public static final String CLASSNAME_OVERTIME = CLASSNAME + "-overtime";
 
+	private long lastTimerTick; 
 	private long time = 0;
 	private Long endTime;
 	private boolean overtime = false;
@@ -170,6 +172,7 @@ public class VCountdownClock extends Widget {
 
 	public void startClock() {
 		counter.scheduleRepeating(timerInterval);
+		lastTimerTick = new Date().getTime();
 		overtime = false;
 		counter.run();
 	}
@@ -181,7 +184,11 @@ public class VCountdownClock extends Widget {
 	protected class Counter extends Timer {
 		@Override
 		public void run() {
-			setTime(getTime() + ((direction == Direction.UP ? 1 : -1) * timerInterval));
+			//can't trust the timer precision
+			long elapsedMillis = new Date().getTime() - lastTimerTick;
+			lastTimerTick = new Date().getTime();
+			
+			setTime(getTime() + ((direction == Direction.UP ? 1 : -1) * elapsedMillis));
 
 			if (getEndTime() != null && ((direction == Direction.UP && getTime() >= getEndTime())
 					|| (direction == Direction.DOWN && getTime() <= getEndTime()))) {
