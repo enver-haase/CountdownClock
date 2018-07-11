@@ -93,6 +93,11 @@ public class CountdownClock extends AbstractComponent {
 		};
 		registerRpc(rpc);
 	}
+	
+	public CountdownClock(String format) {
+		this();
+		setFormat(format);
+	}
 
 	@Override
 	protected CountdownClockState getState() {
@@ -124,20 +129,21 @@ public class CountdownClock extends AbstractComponent {
 		getState().setCounterDirection(direction);
 	}
 
-	public void start() {
+	public CountdownClock start() {
 		getState().setActive(true);
+		return this;
 	}
 	
-	public void start(long startMillis, long targetMillis) {
+	public CountdownClock start(long startMillis, long targetMillis) {
 		setTime(startMillis);
 		setTargetTime(targetMillis);
-		start();
+		return start();		
 	}
 	
-	public void start(long startMillis, Direction direction) {
+	public CountdownClock start(long startMillis, Direction direction) {
 		setTime(startMillis);
 		setDirection(direction);
-		start();
+		return start();
 	}
 
 	public void stop() {
@@ -154,15 +160,18 @@ public class CountdownClock extends AbstractComponent {
 	}
 
 	/**
-	 * Set the format for the clock. Available parameters:</br>
-	 * </br>
+	 * Set the format for the clock. Available parameters:
 	 * 
-	 * %- minus sign if the time is negative or empty string</br>
-	 * %d days </br>
-	 * %h hours </br>
-	 * %m minutes </br>
-	 * %s seconds </br>
-	 * %ts tenth of a seconds </br>
+	 * <ul>
+	 * <li>%- minus sign if the time is negative or empty string</li>
+	 * <li>%d days</li>
+	 * <li>%h hours</li>
+	 * <li>%m minutes</li>
+	 * <li>%M minutes with 2 digits</li>
+	 * <li>%s seconds</li>
+	 * <li>%S seconds with 2 digits</li>
+	 * <li>%ts tenth of a seconds</li>
+	 * </ul>
 	 * 
 	 * For example "%d day(s) %h hour(s) and %m minutes" could produce the string "2
 	 * day(s) 23 hour(s) and 5 minutes"

@@ -26,7 +26,7 @@ public class VCountdownClock extends Widget {
 
 	public static final String CLASSNAME_OVERTIME = CLASSNAME + "-overtime";
 
-	private long lastTimerTick; 
+	private long lastTimerTick;
 	private long time = 0;
 	private Long endTime;
 	private boolean overtime = false;
@@ -99,7 +99,7 @@ public class VCountdownClock extends Widget {
 					TimeString ts = new TimeString(TimeType.SIGN);
 					formatStrings.add(ts);
 					formatsPresent.add(TimeType.SIGN);
-				}else if (type.equals("%d")) {
+				} else if (type.equals("%d")) {
 					TimeString ts = new TimeString(TimeType.DAYS);
 					formatStrings.add(ts);
 					formatsPresent.add(TimeType.DAYS);
@@ -115,6 +115,14 @@ public class VCountdownClock extends Widget {
 					TimeString ts = new TimeString(TimeType.SECONDS);
 					formatStrings.add(ts);
 					formatsPresent.add(TimeType.SECONDS);
+				} else if (type.equals("%M")) {
+					TimeString ts = new TimeString(TimeType.MINUTES_TWO_DIGIT);
+					formatStrings.add(ts);
+					formatsPresent.add(TimeType.MINUTES_TWO_DIGIT);
+				} else if (type.equals("%S")) {
+					TimeString ts = new TimeString(TimeType.SECONDS_TWO_DIGIT);
+					formatStrings.add(ts);
+					formatsPresent.add(TimeType.SECONDS_TWO_DIGIT);
 				} else if (format.substring(0, 3).equals("%ts")) {
 					TimeString ts = new TimeString(TimeType.TENTH_OF_A_SECONDS);
 					formatStrings.add(ts);
@@ -184,10 +192,10 @@ public class VCountdownClock extends Widget {
 	protected class Counter extends Timer {
 		@Override
 		public void run() {
-			//can't trust the timer precision
+			// can't trust the timer precision
 			long elapsedMillis = new Date().getTime() - lastTimerTick;
 			lastTimerTick = new Date().getTime();
-			
+
 			setTime(getTime() + ((direction == Direction.UP ? 1 : -1) * elapsedMillis));
 
 			if (getEndTime() != null && ((direction == Direction.UP && getTime() >= getEndTime())
@@ -233,6 +241,14 @@ public class VCountdownClock extends Widget {
 			return postfix;
 		}
 
+		private String leftPadWithZeroes(long number, int digits) {
+			String string = number + "";
+			while(string.length() < digits) {
+				string = "0" + string;
+			}
+			return string;
+		}
+		
 		public String getValue(long milliseconds) {
 			boolean negative = milliseconds < 0;
 			milliseconds = negative ? milliseconds * -1 : milliseconds;
@@ -248,7 +264,7 @@ public class VCountdownClock extends Widget {
 					milliseconds -= getDays(milliseconds) * oneDay;
 				}
 				return getHours(milliseconds) + postfix;
-			} else if (type.equals(TimeType.MINUTES)) {
+			} else if (type.equals(TimeType.MINUTES) || type.equals(TimeType.MINUTES_TWO_DIGIT)) {
 				// Check if a day exists in the format, in that case remove all
 				// full days from the time
 				if (neglectHigher || formatsPresent.contains(TimeType.DAYS)) {
@@ -257,8 +273,12 @@ public class VCountdownClock extends Widget {
 				if (neglectHigher || formatsPresent.contains(TimeType.HOURS)) {
 					milliseconds -= getHours(milliseconds) * anHour;
 				}
-				return getMinutes(milliseconds) + postfix;
-			} else if (type.equals(TimeType.SECONDS)) {
+				if (type.equals(TimeType.MINUTES_TWO_DIGIT)) {
+					return leftPadWithZeroes(getMinutes(milliseconds), 2) + postfix;
+				} else {
+					return getMinutes(milliseconds) + postfix;
+				}
+			} else if (type.equals(TimeType.SECONDS) || type.equals(TimeType.SECONDS_TWO_DIGIT)) {
 				// Check if a day exists in the format, in that case remove all
 				// full days from the time
 				if (neglectHigher || formatsPresent.contains(TimeType.DAYS)) {
@@ -267,10 +287,14 @@ public class VCountdownClock extends Widget {
 				if (neglectHigher || formatsPresent.contains(TimeType.HOURS)) {
 					milliseconds -= getHours(milliseconds) * anHour;
 				}
-				if (neglectHigher || formatsPresent.contains(TimeType.MINUTES)) {
+				if (neglectHigher || formatsPresent.contains(TimeType.MINUTES) || formatsPresent.contains(TimeType.MINUTES_TWO_DIGIT)) {
 					milliseconds -= getMinutes(milliseconds) * aMinute;
 				}
-				return getSeconds(milliseconds) + postfix;
+				if (type.equals(TimeType.SECONDS_TWO_DIGIT)) {
+					return leftPadWithZeroes(getSeconds(milliseconds), 2) + postfix;
+				} else {
+					return getSeconds(milliseconds) + postfix;
+				}
 			} else if (type.equals(TimeType.TENTH_OF_A_SECONDS)) {
 				// Check if a day exists in the format, in that case remove all
 				// full days from the time
@@ -316,7 +340,7 @@ public class VCountdownClock extends Widget {
 	}
 
 	protected enum TimeType {
-		DAYS, HOURS, MINUTES, SECONDS, TENTH_OF_A_SECONDS, SIGN
+		DAYS, HOURS, MINUTES, SECONDS, MINUTES_TWO_DIGIT, SECONDS_TWO_DIGIT, TENTH_OF_A_SECONDS, SIGN
 	};
 
 	@Override
