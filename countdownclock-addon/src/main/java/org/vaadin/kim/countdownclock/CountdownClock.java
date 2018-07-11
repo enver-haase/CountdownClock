@@ -21,19 +21,65 @@ public class CountdownClock extends AbstractComponent {
 	 */
 	public interface EndEventListener {
 		/**
-		 * Listener for countdown events. Takes as input the clock which reached
-		 * its target date and time.
+		 * Listener for countdown events. Takes as input the clock which reached its
+		 * target date and time.
 		 * 
 		 * @param clock
 		 */
 		public void countDownEnded(CountdownClock clock);
 	}
-	
+
+	public static CountdownClock createTimerTo(Date date, String format) {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(date);
+		long difference = calendar.getTimeInMillis() - Calendar.getInstance().getTimeInMillis();
+
+		return createTimer(0, difference, format);
+	}
+
+	public static CountdownClock createCountdownTo(Date date, String format) {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(date);
+		long difference = calendar.getTimeInMillis() - Calendar.getInstance().getTimeInMillis();
+
+		return createCountdown(difference, 0L, format);
+	}
+
+	public static CountdownClock createCountdown(long fromMillis, String format) {
+		return createCountdown(fromMillis, 0L, format);
+	}
+
+	public static CountdownClock createCountdown(long fromMillis, Long toMillis, String format) {
+		CountdownClock clock = new CountdownClock();
+		clock.setTime(fromMillis);
+		clock.setTargetTime(toMillis);
+		clock.setDirection(Direction.DOWN);
+		clock.setFormat(format);
+		return clock;
+	}
+
+	public static CountdownClock createTimer(String format) {
+		return createTimer(0, format);
+	}
+
+	public static CountdownClock createTimer(long fromMillis, String format) {
+		return createTimer(fromMillis, null, format);
+	}
+
+	public static CountdownClock createTimer(long fromMillis, Long toMillis, String format) {
+		CountdownClock clock = new CountdownClock();
+		clock.setTime(fromMillis);
+		clock.setTargetTime(toMillis);
+		clock.setDirection(Direction.UP);
+		clock.setFormat(format);
+		return clock;
+	}
+
 	private static final long serialVersionUID = -4093579148150450057L;
 
-	protected String format = "%dD %hH %mM %sS";
-
 	protected List<EndEventListener> listeners = new ArrayList<EndEventListener>();
+
+	private boolean autoStart = true;
 
 	public CountdownClock() {
 		CountdownClockRpc rpc = new CountdownClockRpc() {
@@ -49,55 +95,53 @@ public class CountdownClock extends AbstractComponent {
 	}
 
 	@Override
-	public CountdownClockState getState() {
+	protected CountdownClockState getState() {
 		return (CountdownClockState) super.getState();
 	}
 
-	public CountdownClock startTimerTo(Date date) {
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(date);
-		long difference = calendar.getTimeInMillis() - Calendar.getInstance().getTimeInMillis();
+	private long getInitialTime() {
+		return getState().getCounterStart();
+	}
 
-		startTimer(0, difference);
-		return this;
+	public void setTime(long millis) {
+		stop();
+		getState().setCounterStart(millis);
+	}
+
+	public Long getTargetTime() {
+		return getState().getCounterTarget();
+	}
+
+	public void setTargetTime(Long millis) {
+		getState().setCounterTarget(millis);
+	}
+
+	public Direction getDirection() {
+		return getState().getCounterDirection();
+	}
+
+	public void setDirection(Direction direction) {
+		getState().setCounterDirection(direction);
+	}
+
+	public void start() {
+		getState().setActive(true);
 	}
 	
-	public CountdownClock startCountdownTo(Date date) {
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(date);
-		long difference = calendar.getTimeInMillis() - Calendar.getInstance().getTimeInMillis();
-
-		startCountdown(difference, 0L);
-		return this;
+	public void start(long startMillis, long targetMillis) {
+		setTime(startMillis);
+		setTargetTime(targetMillis);
+		start();
+	}
+	
+	public void start(long startMillis, Direction direction) {
+		setTime(startMillis);
+		setDirection(direction);
+		start();
 	}
 
-	public CountdownClock startCountdown(long fromMillis) {
-		startCountdown(fromMillis, 0L);
-		return this;
-	}
-
-	public CountdownClock startCountdown(long fromMillis, Long toMillis) {
-		getState().setCounterStart(fromMillis);
-		getState().setCounterTarget(toMillis);
-		getState().setCounterDirection(Direction.DOWN);
-		return this;
-	}
-
-	public CountdownClock startTimer() {
-		startTimer(0);
-		return this;
-	}
-
-	public CountdownClock startTimer(long fromMillis) {
-		startTimer(fromMillis, null);
-		return this;
-	}
-
-	public CountdownClock startTimer(long fromMillis, Long toMillis) {
-		getState().setCounterStart(fromMillis);
-		getState().setCounterTarget(toMillis);
-		getState().setCounterDirection(Direction.UP);
-		return this;
+	public void stop() {
+		getState().setActive(false);
 	}
 
 	/**
@@ -110,9 +154,15 @@ public class CountdownClock extends AbstractComponent {
 	}
 
 	/**
-	 * Set the format for the clock. Available parameters:
+	 * Set the format for the clock. Available parameters:</br>
+	 * </br>
 	 * 
-	 * %d - days %h - hours %m - minutes %s - seconds %ts - tenth of a seconds
+	 * %- minus sign if the time is negative or empty string</br>
+	 * %d days </br>
+	 * %h hours </br>
+	 * %m minutes </br>
+	 * %s seconds </br>
+	 * %ts tenth of a seconds </br>
 	 * 
 	 * For example "%d day(s) %h hour(s) and %m minutes" could produce the string "2
 	 * day(s) 23 hour(s) and 5 minutes"
@@ -121,21 +171,6 @@ public class CountdownClock extends AbstractComponent {
 	 */
 	public void setFormat(String format) {
 		getState().setTimeFormat(format);
-	}
-
-	/**
-	 * Set the format for the clock. Available parameters:
-	 * 
-	 * %d - days %h - hours %m - minutes %s - seconds %ts - tenth of a seconds
-	 * 
-	 * For example "%d day(s) %h hour(s) and %m minutes" could produce the string "2
-	 * day(s) 23 hour(s) and 5 minutes"
-	 * 
-	 * @param format
-	 */
-	public CountdownClock withFormat(String format) {
-		setFormat(format);
-		return this;
 	}
 
 	public boolean getNeglectHigherUnits() {
@@ -164,34 +199,55 @@ public class CountdownClock extends AbstractComponent {
 		setNeglectHigherUnits(neglect);
 		return this;
 	}
-	
+
 	public boolean isContinueAfterEnd() {
 		return getState().isContinueAfterEnd();
 	}
-	
+
 	public void setContinueAfterEnd(boolean continueAfterEnd) {
 		getState().setContinueAfterEnd(continueAfterEnd);
 	}
-	
+
 	public CountdownClock continueAfterEnd(boolean continueAfterEnd) {
 		setContinueAfterEnd(continueAfterEnd);
 		return this;
 	}
 
+	public boolean isAutoStart() {
+		return autoStart;
+	}
+
+	public void setAutoStart(boolean autoStart) {
+		this.autoStart = autoStart;
+	}
+
 	@Override
 	public void beforeClientResponse(boolean initial) {
-		if (getState().getCounterDirection() == Direction.UP
-				&& getState().getCounterStart() > getState().getCounterTarget()) {
-			throw new IllegalArgumentException("If direction is UP, counterStart should be lesl than counterTarget");
+		if(getFormat() == null) {
+			throw new IllegalStateException("Should set a format");
 		}
-		if (getState().getCounterDirection() == Direction.DOWN
-				&& getState().getCounterStart() < getState().getCounterTarget()) {
+		if (getDirection() == null) {
+			if (getTargetTime() == null) {
+				throw new IllegalStateException("Eiter TargetTime or Direction must be set");
+			}
+			if (getInitialTime() < getTargetTime()) {
+				setDirection(Direction.UP);
+			} else {
+				setDirection(Direction.DOWN);
+			}
+		} else if (getDirection() == Direction.UP && getInitialTime() > getTargetTime()) {
+			throw new IllegalArgumentException("If direction is UP, counterStart should be lesl than counterTarget");
+		} else if (getDirection() == Direction.DOWN && getInitialTime() < getTargetTime()) {
 			throw new IllegalArgumentException(
 					"If direction is DOWN, counterStart should be greather than counterTarget");
 		}
+
+		if (autoStart == true) {
+			start();
+		}
 		super.beforeClientResponse(initial);
 	}
-	
+
 	/**
 	 * Add a listener for countdown events.
 	 * 
@@ -201,7 +257,7 @@ public class CountdownClock extends AbstractComponent {
 	public void addListener(EndEventListener listener) {
 		addEndEventListener(listener);
 	}
-	
+
 	/**
 	 * Add a listener for countdown events.
 	 * 
@@ -222,6 +278,7 @@ public class CountdownClock extends AbstractComponent {
 	public void removeListener(EndEventListener listener) {
 		removeEndEventListener(listener);
 	}
+
 	/**
 	 * Remove listener for countdown events.
 	 * 

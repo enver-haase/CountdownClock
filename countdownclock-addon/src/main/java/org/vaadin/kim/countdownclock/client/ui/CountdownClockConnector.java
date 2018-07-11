@@ -56,8 +56,15 @@ public class CountdownClockConnector extends AbstractComponentConnector implemen
 			w.setDirection(getState().getCounterDirection() == Direction.UP
 					? org.vaadin.kim.countdownclock.client.ui.VCountdownClock.Direction.UP
 					: org.vaadin.kim.countdownclock.client.ui.VCountdownClock.Direction.DOWN);
-			w.startClock();
 		}
+		if (stateChangeEvent.hasPropertyChanged("active")) {
+			if (getState().isActive()) {
+				w.startClock();
+			} else {
+				w.stop();
+			}
+		}
+
 	}
 
 	public void countdownEnded() {

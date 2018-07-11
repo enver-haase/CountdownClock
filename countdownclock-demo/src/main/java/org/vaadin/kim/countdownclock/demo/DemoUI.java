@@ -1,5 +1,6 @@
 package org.vaadin.kim.countdownclock.demo;
 
+import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -24,45 +25,37 @@ public class DemoUI extends UI {
 
 	private static final long serialVersionUID = -2474563921376269949L;
 
-    @WebServlet(value = "/*", asyncSupported = true)
-    @VaadinServletConfiguration(productionMode = false, ui = DemoUI.class)
-    public static class Servlet extends VaadinServlet {}
-	
+	@WebServlet(value = "/*", asyncSupported = true)
+	@VaadinServletConfiguration(productionMode = false, ui = DemoUI.class)
+	public static class Servlet extends VaadinServlet {
+	}
+
 	@Override
 	protected void init(VaadinRequest request) {
 		final VerticalLayout layout = new VerticalLayout();
 		setContent(layout);
 
-
-		Label label = new Label(
-				"Just specify the format of the count down and "
-						+ "the date to which to count and you're set to go! "
-						+ "Here is an example:");
+		Label label = new Label("Just specify the format of the count down and "
+				+ "the date to which to count and you're set to go! " + "Here is an example:");
 		layout.addComponent(label);
 
 		layout.addComponent(new Label("One example:"));
-		CountdownClock clock2 = new CountdownClock();
 		Calendar cal = Calendar.getInstance();
 		cal.add(Calendar.SECOND, 10);
 		cal.add(Calendar.HOUR, 2);
-		clock2.setNeglectHigherUnits(true);
-		clock2.setFormat("%m : %s.%ts");
-		clock2.startCountdownTo(cal.getTime());
+		CountdownClock clock2 = CountdownClock.createCountdownTo(cal.getTime(), "%m : %s.%ts")
+				.withNeglectHigherUnits(true);
 		layout.addComponent(clock2);
 
 		layout.addComponent(new Label("...or two.. :"));
 
-		CountdownClock clock1 = new CountdownClock();
 		Calendar c = Calendar.getInstance();
 		c.set(c.get(Calendar.YEAR) + 1, 0, 1, 0, 0, 0);
-		clock1.startCountdownTo(c.getTime());
-		clock1.setFormat("<span style='font: bold 13px Arial; margin: 10px'>"
-				+ "Time until new year: %d days, %h hours, %m minutes and %s seconds</span>");
+		CountdownClock clock1 = CountdownClock.createCountdownTo(c.getTime(),
+				"<span style='font: bold 13px Arial; margin: 10px'>"
+						+ "Time until new year: %d days, %h hours, %m minutes and %s seconds</span>");
 		clock1.setHeight("40px");
-
 		layout.addComponent(clock1);
-
-
 
 		final CountdownClock clock = new CountdownClock();
 		Button button = new Button("Don't click on me", new ClickListener() {
@@ -72,16 +65,18 @@ public class DemoUI extends UI {
 				event.getButton().setEnabled(false);
 				Calendar c = Calendar.getInstance();
 				c.add(Calendar.SECOND, 10);
-				clock.startCountdownTo(c.getTime()).continueAfterEnd(true);
+				clock.setTime(10*1000);
+				clock.setTargetTime(0L);
+				clock.continueAfterEnd(true);
 				clock.setFormat("<span style='font: bold 25px Arial; margin: 10px'>"
 						+ "This page will self-destruct in %s.%ts seconds.</span>");
 
 				clock.addEndEventListener(new EndEventListener() {
 					public void countDownEnded(CountdownClock clock) {
-						Notification
-								.show("Ok, implementing the page destruction was"
-										+ " kinda hard, so could you please just imagine"
-										+ " it happening?", Notification.Type.ERROR_MESSAGE);
+						Notification.show(
+								"Ok, implementing the page destruction was"
+										+ " kinda hard, so could you please just imagine" + " it happening?",
+								Notification.Type.ERROR_MESSAGE);
 						clock.setFormat("<span style='font: bold 25px Arial; margin: 10px'>"
 								+ "This page has self-destructed %s.%ts seconds ago.</span>");
 					}

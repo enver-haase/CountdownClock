@@ -30,6 +30,8 @@ public class CountdownClockState extends AbstractComponentState {
 	private Long counterTarget;
 
 	private Direction counterDirection;
+	
+	private boolean active = false;
 
 	private boolean continueAfterEnd = false;
 
@@ -95,6 +97,14 @@ public class CountdownClockState extends AbstractComponentState {
 	public void setCounter(long startMillis, long endMillis, Direction direction, String format) {
 		setCounter(startMillis, endMillis, direction);
 		this.setTimeFormat(format);
+	}
+	
+	public boolean isActive() {
+		return active;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
 	}
 
 }

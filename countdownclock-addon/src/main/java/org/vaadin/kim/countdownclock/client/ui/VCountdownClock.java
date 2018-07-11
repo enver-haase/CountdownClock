@@ -366,4 +366,8 @@ public class VCountdownClock extends Widget {
 	public void setContinueAfterEnd(boolean continueAfterEnd) {
 		this.continueAfterEnd = continueAfterEnd;
 	}
+
+	public void stop() {
+		counter.cancel();
+	}
 }
