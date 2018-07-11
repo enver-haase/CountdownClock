@@ -5,6 +5,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import org.vaadin.kim.countdownclock.client.ui.CountdownClockClientRpc;
 import org.vaadin.kim.countdownclock.client.ui.CountdownClockRpc;
 import org.vaadin.kim.countdownclock.client.ui.CountdownClockState;
 import org.vaadin.kim.countdownclock.client.ui.CountdownClockState.Direction;
@@ -77,15 +78,20 @@ public class CountdownClock extends AbstractComponent {
 
 	private static final long serialVersionUID = -4093579148150450057L;
 
+	private final CountdownClockClientRpc clientRpc;
 	protected List<EndEventListener> listeners = new ArrayList<EndEventListener>();
-
-	private boolean autoStart = true;
+	private boolean running = false;
+	private Long initialTime;
 
 	public CountdownClock() {
+		clientRpc = getRpcProxy(CountdownClockClientRpc.class);
 		CountdownClockRpc rpc = new CountdownClockRpc() {
 			private static final long serialVersionUID = -7392569455421206075L;
 
 			public void countdownEnded() {
+				if (!getState().isContinueAfterEnd()) {
+					running = false;
+				}
 				for (EndEventListener listener : listeners) {
 					listener.countDownEnded(CountdownClock.this);
 				}
@@ -93,7 +99,7 @@ public class CountdownClock extends AbstractComponent {
 		};
 		registerRpc(rpc);
 	}
-	
+
 	public CountdownClock(String format) {
 		this();
 		setFormat(format);
@@ -104,13 +110,9 @@ public class CountdownClock extends AbstractComponent {
 		return (CountdownClockState) super.getState();
 	}
 
-	private long getInitialTime() {
-		return getState().getCounterStart();
-	}
-
 	public void setTime(long millis) {
-		stop();
-		getState().setCounterStart(millis);
+		initialTime = millis;
+		clientRpc.setTime(millis);
 	}
 
 	public Long getTargetTime() {
@@ -130,16 +132,17 @@ public class CountdownClock extends AbstractComponent {
 	}
 
 	public CountdownClock start() {
-		getState().setActive(true);
+		clientRpc.start();
+		running = true;
 		return this;
 	}
-	
+
 	public CountdownClock start(long startMillis, long targetMillis) {
 		setTime(startMillis);
 		setTargetTime(targetMillis);
-		return start();		
+		return start();
 	}
-	
+
 	public CountdownClock start(long startMillis, Direction direction) {
 		setTime(startMillis);
 		setDirection(direction);
@@ -147,7 +150,12 @@ public class CountdownClock extends AbstractComponent {
 	}
 
 	public void stop() {
-		getState().setActive(false);
+		running = false;
+		clientRpc.stop();
+	}
+
+	private boolean isRunning() {
+		return running;
 	}
 
 	/**
@@ -222,37 +230,44 @@ public class CountdownClock extends AbstractComponent {
 		return this;
 	}
 
-	public boolean isAutoStart() {
-		return autoStart;
+	public CountdownClock autostart(boolean autostart) {
+		setAutostart(autostart);
+		return this;
+	}
+	
+	public boolean isAutostart() {
+		return getState().isAutostart();
 	}
 
-	public void setAutoStart(boolean autoStart) {
-		this.autoStart = autoStart;
+	public void setAutostart(boolean autostart) {
+		getState().setAutostart(autostart);
 	}
 
 	@Override
 	public void beforeClientResponse(boolean initial) {
-		if(getFormat() == null) {
-			throw new IllegalStateException("Should set a format");
-		}
-		if (getDirection() == null) {
-			if (getTargetTime() == null) {
-				throw new IllegalStateException("Eiter TargetTime or Direction must be set");
+		if (getState().isAutostart() || isRunning()) {
+			if (getFormat() == null) {
+				throw new IllegalStateException("Should set a format");
 			}
-			if (getInitialTime() < getTargetTime()) {
-				setDirection(Direction.UP);
-			} else {
-				setDirection(Direction.DOWN);
+			if (getDirection() == null) {
+				if (getTargetTime() == null) {
+					throw new IllegalStateException("Eiter TargetTime or Direction must be set");
+				}
+				if(initialTime == null) {
+					throw new IllegalStateException("You must callSetTime before start()");
+				}
+				if (initialTime < getTargetTime()) {
+					setDirection(Direction.UP);
+				} else {
+					setDirection(Direction.DOWN);
+				}
+			} else if (getDirection() == Direction.UP && initialTime > getTargetTime()) {
+				throw new IllegalArgumentException(
+						"If direction is UP, counterStart should be lesl than counterTarget");
+			} else if (getDirection() == Direction.DOWN && initialTime < getTargetTime()) {
+				throw new IllegalArgumentException(
+						"If direction is DOWN, counterStart should be greather than counterTarget");
 			}
-		} else if (getDirection() == Direction.UP && getInitialTime() > getTargetTime()) {
-			throw new IllegalArgumentException("If direction is UP, counterStart should be lesl than counterTarget");
-		} else if (getDirection() == Direction.DOWN && getInitialTime() < getTargetTime()) {
-			throw new IllegalArgumentException(
-					"If direction is DOWN, counterStart should be greather than counterTarget");
-		}
-
-		if (autoStart == true) {
-			start();
 		}
 		super.beforeClientResponse(initial);
 	}

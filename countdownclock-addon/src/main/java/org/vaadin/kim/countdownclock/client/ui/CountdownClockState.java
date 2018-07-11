@@ -20,18 +20,13 @@ public class CountdownClockState extends AbstractComponentState {
 	private String timeFormat;
 
 	/**
-	 * Number of milliseconds the counter should start from
-	 */
-	private long counterStart;
-
-	/**
 	 * Number of milliseconds to count to
 	 */
 	private Long counterTarget;
 
 	private Direction counterDirection;
-	
-	private boolean active = false;
+
+	private boolean autostart = false;
 
 	private boolean continueAfterEnd = false;
 
@@ -56,18 +51,10 @@ public class CountdownClockState extends AbstractComponentState {
 		this.timeFormat = timeFormat;
 	}
 
-	public long getCounterStart() {
-		return counterStart;
-	}
-	
-	public void setCounterStart(long counterStart) {
-		this.counterStart = counterStart;
-	}
-	
 	public Long getCounterTarget() {
 		return counterTarget;
 	}
-	
+
 	public void setCounterTarget(Long counterTarget) {
 		this.counterTarget = counterTarget;
 	}
@@ -75,7 +62,7 @@ public class CountdownClockState extends AbstractComponentState {
 	public Direction getCounterDirection() {
 		return counterDirection;
 	}
-	
+
 	public void setCounterDirection(Direction counterDirection) {
 		this.counterDirection = counterDirection;
 	}
@@ -88,23 +75,12 @@ public class CountdownClockState extends AbstractComponentState {
 		this.continueAfterEnd = continueAfterEnd;
 	}
 
-	public void setCounter(long counterInitalMillis, Long counterTargetMillis, Direction countDirection) {
-		this.setCounterStart(counterInitalMillis);
-		this.setCounterTarget(counterTargetMillis);
-		this.setCounterDirection(countDirection);
+	public boolean isAutostart() {
+		return autostart;
 	}
 
-	public void setCounter(long startMillis, long endMillis, Direction direction, String format) {
-		setCounter(startMillis, endMillis, direction);
-		this.setTimeFormat(format);
-	}
-	
-	public boolean isActive() {
-		return active;
-	}
-
-	public void setActive(boolean active) {
-		this.active = active;
+	public void setAutostart(boolean active) {
+		this.autostart = active;
 	}
 
 }

@@ -219,7 +219,6 @@ public class VCountdownClock extends Widget {
 			} else {
 				removeStyleName(CLASSNAME_OVERTIME);
 			}
-			updateLabel();
 		}
 	}
 
@@ -361,6 +360,7 @@ public class VCountdownClock extends Widget {
 
 	public void setTime(long time) {
 		this.time = time;
+		updateLabel();
 	}
 
 	public Direction getDirection() {

@@ -23,6 +23,23 @@ public class CountdownClockConnector extends AbstractComponentConnector implemen
 
 	public CountdownClockConnector() {
 		rpc = RpcProxy.create(CountdownClockRpc.class, this);
+		registerRpc(CountdownClockClientRpc.class, new CountdownClockClientRpc() {
+
+			@Override
+			public void start() {
+				getWidget().startClock();
+			}
+
+			@Override
+			public void stop() {
+				getWidget().stop();
+			}
+
+			@Override
+			public void setTime(long time) {
+				getWidget().setTime(time);
+			}
+		});
 	}
 
 	@Override
@@ -51,20 +68,14 @@ public class CountdownClockConnector extends AbstractComponentConnector implemen
 		w.setNeglectHigherUnits(getState().isNeglectHigherUnits());
 		if (stateChangeEvent.hasPropertyChanged("counterStart") || stateChangeEvent.hasPropertyChanged("counterTarget")
 				|| stateChangeEvent.hasPropertyChanged("counterDirection")) {
-			w.setTime(getState().getCounterStart());
 			w.setEndTime(getState().getCounterTarget());
 			w.setDirection(getState().getCounterDirection() == Direction.UP
 					? org.vaadin.kim.countdownclock.client.ui.VCountdownClock.Direction.UP
 					: org.vaadin.kim.countdownclock.client.ui.VCountdownClock.Direction.DOWN);
 		}
-		if (stateChangeEvent.hasPropertyChanged("active")) {
-			if (getState().isActive()) {
-				w.startClock();
-			} else {
-				w.stop();
-			}
+		if (getState().isAutostart()) {
+			w.startClock();
 		}
-
 	}
 
 	public void countdownEnded() {
