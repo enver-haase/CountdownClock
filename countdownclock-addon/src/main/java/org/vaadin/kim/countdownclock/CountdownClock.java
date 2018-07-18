@@ -234,7 +234,7 @@ public class CountdownClock extends AbstractComponent {
 		setAutostart(autostart);
 		return this;
 	}
-	
+
 	public boolean isAutostart() {
 		return getState().isAutostart();
 	}
@@ -253,7 +253,7 @@ public class CountdownClock extends AbstractComponent {
 				if (getTargetTime() == null) {
 					throw new IllegalStateException("Eiter TargetTime or Direction must be set");
 				}
-				if(initialTime == null) {
+				if (initialTime == null) {
 					throw new IllegalStateException("You must callSetTime before start()");
 				}
 				if (initialTime < getTargetTime()) {
@@ -261,10 +261,10 @@ public class CountdownClock extends AbstractComponent {
 				} else {
 					setDirection(Direction.DOWN);
 				}
-			} else if (getDirection() == Direction.UP && initialTime > getTargetTime()) {
+			} else if (getDirection() == Direction.UP && getTargetTime() != null && initialTime > getTargetTime()) {
 				throw new IllegalArgumentException(
 						"If direction is UP, counterStart should be lesl than counterTarget");
-			} else if (getDirection() == Direction.DOWN && initialTime < getTargetTime()) {
+			} else if (getDirection() == Direction.DOWN && getTargetTime() != null && initialTime < getTargetTime()) {
 				throw new IllegalArgumentException(
 						"If direction is DOWN, counterStart should be greather than counterTarget");
 			}
