@@ -65,7 +65,6 @@ public class CountdownClockConnector extends AbstractComponentConnector implemen
 		VCountdownClock w = getWidget();
 		w.setContinueAfterEnd(getState().isContinueAfterEnd());
 		w.setTimeFormat(getState().getTimeFormat());
-		w.setNeglectHigherUnits(getState().isNeglectHigherUnits());
 		if (stateChangeEvent.hasPropertyChanged("counterStart") || stateChangeEvent.hasPropertyChanged("counterTarget")
 				|| stateChangeEvent.hasPropertyChanged("counterDirection")) {
 			w.setEndTime(getState().getCounterTarget());

@@ -30,19 +30,6 @@ public class CountdownClockState extends AbstractComponentState {
 
 	private boolean continueAfterEnd = false;
 
-	/**
-	 *
-	 */
-	private boolean neglectHigherUnits;
-
-	public void setNeglectHigherUnits(boolean neglect) {
-		this.neglectHigherUnits = neglect;
-	}
-
-	public boolean isNeglectHigherUnits() {
-		return neglectHigherUnits;
-	}
-
 	public String getTimeFormat() {
 		return timeFormat;
 	}

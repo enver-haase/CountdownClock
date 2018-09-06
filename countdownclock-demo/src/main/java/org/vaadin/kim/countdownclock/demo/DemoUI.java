@@ -43,9 +43,9 @@ public class DemoUI extends UI {
 		Calendar cal = Calendar.getInstance();
 		cal.add(Calendar.SECOND, 10);
 		cal.add(Calendar.HOUR, 2);
-		CountdownClock clock2 = CountdownClock.createCountdownTo(cal.getTime(), "%m : %s.%ts")
-				.withNeglectHigherUnits(true);
+		CountdownClock clock2 = CountdownClock.createCountdownTo(cal.getTime(), "%m : %s.%ts");
 		layout.addComponent(clock2);
+		clock2.start();
 
 		layout.addComponent(new Label("...or two.. :"));
 
@@ -55,7 +55,13 @@ public class DemoUI extends UI {
 				"<span style='font: bold 13px Arial; margin: 10px'>"
 						+ "Time until new year: %d days, %h hours, %m minutes and %s seconds</span>");
 		clock1.setHeight("40px");
+		clock1.start();
 		layout.addComponent(clock1);
+		
+		layout.addComponent(new Label("-------"));
+		CountdownClock clock3 = CountdownClock.createCountdown(50000, "JS: %s %js{ %s / 2 }");
+		clock3.start();
+		layout.addComponent(clock3);
 
 		final CountdownClock clock = new CountdownClock();
 		Button button = new Button("Don't click on me", new ClickListener() {

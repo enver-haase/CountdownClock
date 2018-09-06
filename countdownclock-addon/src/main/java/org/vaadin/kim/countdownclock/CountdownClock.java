@@ -171,13 +171,24 @@ public class CountdownClock extends AbstractComponent {
 	 * Set the format for the clock. Available parameters:
 	 * 
 	 * <ul>
-	 * <li>%- minus sign if the time is negative or empty string</li>
+	 * <li>%sign minus sign if the time is negative or empty string (all other value will be without sign if present)</li>
+	 * <li>%SIGN minus or plus sign (all other value will be without sign if present)</li>
+	 * <li>%nosign no sign even if negative (all other value will be without sign if present)</li>
+	 * <li></li>
 	 * <li>%d days</li>
-	 * <li>%h hours</li>
-	 * <li>%m minutes</li>
-	 * <li>%M minutes with 2 digits</li>
-	 * <li>%s seconds</li>
-	 * <li>%S seconds with 2 digits</li>
+	 * <li></li>
+	 * <li>%h hours of day (reset at 23)</li>
+	 * <li>%hh hours of day, two digits</li>
+	 * <li>%H hours total</li>
+	 * <li></li>
+	 * <li>%m minutes of hour</li>
+	 * <li>%mm minutes of hour, two digits</li>
+	 * <li>%M minutes total</li>
+	 * <li></li>
+	 * <li>%s seconds fo minute</li>
+	 * <li>%ss seconds of minute, two digits</li>
+	 * <li>%S seconds total</li>
+	 * <li></li>
 	 * <li>%ts tenth of a seconds</li>
 	 * </ul>
 	 * 
@@ -188,33 +199,6 @@ public class CountdownClock extends AbstractComponent {
 	 */
 	public void setFormat(String format) {
 		getState().setTimeFormat(format);
-	}
-
-	public boolean getNeglectHigherUnits() {
-		return getState().isNeglectHigherUnits();
-	}
-
-	/**
-	 * Neglegting higher units means that e.g. the number seconds is always shown as
-	 * 0-59, even if there are a number of minutes left that are not shown (no %m in
-	 * the format).
-	 *
-	 * @param neglect
-	 */
-	public void setNeglectHigherUnits(boolean neglect) {
-		getState().setNeglectHigherUnits(neglect);
-	}
-
-	/**
-	 * Neglegting higher units means that e.g. the number seconds is always shown as
-	 * 0-59, even if there are a number of minutes left that are not shown (no %m in
-	 * the format).
-	 *
-	 * @param neglect
-	 */
-	public CountdownClock withNeglectHigherUnits(boolean neglect) {
-		setNeglectHigherUnits(neglect);
-		return this;
 	}
 
 	public boolean isContinueAfterEnd() {
