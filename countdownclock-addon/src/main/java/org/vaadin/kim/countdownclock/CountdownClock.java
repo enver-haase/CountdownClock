@@ -1,5 +1,6 @@
 package org.vaadin.kim.countdownclock;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -110,6 +111,10 @@ public class CountdownClock extends AbstractComponent {
 		return (CountdownClockState) super.getState();
 	}
 
+	public void setTime(Duration duration) {
+		setTime(duration.toMillis());
+	}
+	
 	public void setTime(long millis) {
 		initialTime = millis;
 		clientRpc.setTime(millis);
