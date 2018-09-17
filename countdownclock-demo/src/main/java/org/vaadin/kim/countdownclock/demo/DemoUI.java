@@ -58,6 +58,17 @@ public class DemoUI extends UI {
 		clock1.start();
 		layout.addComponent(clock1);
 		
+		layout.addComponent(new Label("...or tre.. :"));
+
+		CountdownClock clock4 = CountdownClock.createTimer(200, "%s.%ts");
+		clock4.setTargetTime(10000L);
+		clock4.setContinueAfterEnd(true);
+		clock4.start();
+		layout.addComponent(clock4);
+		layout.addComponent(new Button("Reset", event -> {
+			clock4.setTime(0);
+		}));
+		
 		layout.addComponent(new Label("-------"));
 		CountdownClock clock3 = CountdownClock.createCountdown(50000, "JS: %s %js{ %s / 2 }");
 		clock3.start();
