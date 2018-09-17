@@ -26,7 +26,9 @@ public class VCountdownClock extends Widget {
 
 	public static final String CLASSNAME_OVERTIME = CLASSNAME + "-overtime";
 
-	private long lastTimerTick;
+	private long startTime;
+	private long ticksCount;
+
 	private long time = 0;
 	private Long endTime;
 	private boolean wasOvertime = false;
@@ -51,15 +53,15 @@ public class VCountdownClock extends Widget {
 
 	private boolean continueAfterEnd = false;
 
-private TimeStringBuilder timeStringBuilder;
+	private TimeStringBuilder timeStringBuilder;
 
 	protected void setTimeFormat(String format) {
 
 		timeStringBuilder = new TimeStringBuilder(format);
 		Integer precision = timeStringBuilder.getPrecision();
-		if(precision != null) {
+		if (precision != null) {
 			timerInterval = precision;
-		}else {
+		} else {
 			timerInterval = 1000;
 		}
 	}
@@ -72,14 +74,16 @@ private TimeStringBuilder timeStringBuilder;
 	}
 
 	public void startClock() {
+		startTime = new Date().getTime();
+		ticksCount = 0;
+
 		counter.scheduleRepeating(timerInterval);
-		lastTimerTick = new Date().getTime();
-		wasOvertime = false;
 		counter.run();
 	}
 
 	protected void updateLabel() {
 		getElement().setInnerHTML(format(getTime()));
+		// right now wasOvertime is equal to getOvertime()
 		if (wasOvertime == true) {
 			addStyleName(CLASSNAME_OVERTIME);
 		} else {
@@ -91,16 +95,18 @@ private TimeStringBuilder timeStringBuilder;
 		@Override
 		public void run() {
 			// can't trust the timer precision
-			long elapsedMillis = new Date().getTime() - lastTimerTick;
-			lastTimerTick = new Date().getTime();
+			long realTime = new Date().getTime() - startTime;
+			long idealTime = timerInterval * ticksCount;
+			int drift = (int) (realTime - idealTime);
 
-			setTime(getTime() + ((direction == Direction.UP ? 1 : -1) * elapsedMillis));
+			setTime(getTime() + ((direction == Direction.UP ? 1 : -1) * timerInterval));
 
-			if (getEndTime() != null && ((direction == Direction.UP && getTime() >= getEndTime())
-					|| (direction == Direction.DOWN && getTime() <= getEndTime()))) {
-				if (getContinueAfterEnd() == false) {
-					cancel();
-				}
+			ticksCount++;
+			counter.scheduleRepeating(timerInterval - drift);
+
+			if (!getContinueAfterEnd() && isOvertime()) {
+				cancel();
+				setTime(getEndTime());
 			}
 		}
 	}
@@ -123,14 +129,12 @@ private TimeStringBuilder timeStringBuilder;
 
 	public void setTime(long time) {
 		this.time = time;
-		if (!getContinueAfterEnd() && isOvertime()) {
-			// overtime
-			if (wasOvertime == false) {
-				wasOvertime = true;
-				fireEndEvent();
-			}
-			setTime(getEndTime());
+		boolean overtime = isOvertime();
+		if (overtime && !wasOvertime) {
+			// only the first time overtime is true
+			fireEndEvent();
 		}
+		wasOvertime = overtime;
 		updateLabel();
 	}
 
