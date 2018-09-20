@@ -5,7 +5,7 @@
 	<groupId>it.bonfiglioli</groupId>
 	<artifactId>countdownclock-demo</artifactId>
 	<packaging>war</packaging>
-	<version>2.1.8-SNAPSHOT</version>
+	<version>2.1.9-SNAPSHOT</version>
 	<name>CountdownClock Add-on Demo</name>
 
 	<prerequisites>

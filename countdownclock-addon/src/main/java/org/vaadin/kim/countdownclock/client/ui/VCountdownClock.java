@@ -53,12 +53,12 @@ public class VCountdownClock extends Widget {
 
 	private boolean continueAfterEnd = false;
 
-	private TimeStringBuilder timeStringBuilder;
+	private DurationFormatter timeStringBuilder;
 
 	protected void setTimeFormat(String format) {
 
-		timeStringBuilder = new TimeStringBuilder(format);
-		Integer precision = timeStringBuilder.getPrecision();
+		timeStringBuilder = new DurationFormatter(format);
+		Integer precision = timeStringBuilder.getSmallestUsedPrecision();
 		if (precision != null) {
 			timerInterval = precision;
 		} else {

@@ -1,12 +1,13 @@
 package org.vaadin.kim.countdownclock.client.ui;
 
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 
 import com.google.gwt.regexp.shared.MatchResult;
 import com.google.gwt.regexp.shared.RegExp;
 
-public class TimeStringBuilder {
+public class DurationFormatter {
 
 	private static final int MILLIS = 1;
 	private static final int THENTH_OF_SECONDS = 100 * MILLIS;
@@ -62,7 +63,7 @@ public class TimeStringBuilder {
 		}
 
 		protected boolean printSign() {
-			for (Formatter f : TimeStringBuilder.this.formatters) {
+			for (Formatter f : DurationFormatter.this.formatters) {
 				if (f instanceof SignFormatter) {
 					return false;
 				}
@@ -198,7 +199,35 @@ public class TimeStringBuilder {
 	private List<TockenMatcher> builders = new LinkedList<>();
 	private List<Formatter> formatters;
 
-	public TimeStringBuilder(String format) {
+	/**
+	 * Set the format. Available parameters:
+	 * 
+	 * <ul>
+	 * <li>%sign minus sign if the time is negative or empty string (all other value will be without sign if present)</li>
+	 * <li>%SIGN minus or plus sign (all other value will be without sign if present)</li>
+	 * <li>%nosign no sign even if negative (all other value will be without sign if present)</li>
+	 * <li></li>
+	 * <li>%d days</li>
+	 * <li></li>
+	 * <li>%h hours of day (reset at 23)</li>
+	 * <li>%hh hours of day, two digits</li>
+	 * <li>%H hours total</li>
+	 * <li></li>
+	 * <li>%m minutes of hour</li>
+	 * <li>%mm minutes of hour, two digits</li>
+	 * <li>%M minutes total</li>
+	 * <li></li>
+	 * <li>%s seconds fo minute</li>
+	 * <li>%ss seconds of minute, two digits</li>
+	 * <li>%S seconds total</li>
+	 * <li></li>
+	 * <li>%ts tenth of a seconds</li>
+	 * </ul>
+	 * 
+	 * For example "%d day(s) %h hour(s) and %m minutes" could produce the string "2
+	 * day(s) 23 hour(s) and 5 minutes"
+	 */
+	public DurationFormatter(String format) {
 
 		builders.add(new TockenMatcher() {
 			private static final String START_TOKEN = "%js{";
@@ -215,7 +244,7 @@ public class TimeStringBuilder {
 
 					String js = findOuterMatchingTockensContent(format.substring(startIndex - 1), "{", "}");
 					if (js != null) {
-						list.add(new JavaScriptFormatter(TimeStringBuilder.this.compile(js)));
+						list.add(new JavaScriptFormatter(DurationFormatter.this.compile(js)));
 					} else {
 						list.add(new StringFormatter("!!formato errato!!"));
 					}
@@ -414,7 +443,7 @@ public class TimeStringBuilder {
 		return sb.toString();
 	}
 
-	public Integer getPrecision() {
+	public Integer getSmallestUsedPrecision() {
 		return minPrecision(formatters);
 	}
 
