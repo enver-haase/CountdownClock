@@ -378,7 +378,7 @@ public class DurationFormatter {
 			@Override
 			protected Formatter buildFormatter(MatchResult match) {
 				int digits;
-				if (match.getGroup(0).equals("%h") || match.getGroup(0).equals("%HH")) {
+				if (match.getGroup(0).equals("%hh") || match.getGroup(0).equals("%HH")) {
 					digits = 2;
 				} else {
 					digits = 1;
