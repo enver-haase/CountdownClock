@@ -1,6 +1,6 @@
 package org.vaadin.kim.countdownclock.client.ui;
 
-import java.time.Duration;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -203,9 +203,12 @@ public class DurationFormatter {
 	 * Set the format. Available parameters:
 	 * 
 	 * <ul>
-	 * <li>%sign minus sign if the time is negative or empty string (all other value will be without sign if present)</li>
-	 * <li>%SIGN minus or plus sign (all other value will be without sign if present)</li>
-	 * <li>%nosign no sign even if negative (all other value will be without sign if present)</li>
+	 * <li>%sign minus sign if the time is negative or empty string (all other value
+	 * will be without sign if present)</li>
+	 * <li>%SIGN minus or plus sign (all other value will be without sign if
+	 * present)</li>
+	 * <li>%nosign no sign even if negative (all other value will be without sign if
+	 * present)</li>
 	 * <li></li>
 	 * <li>%d days</li>
 	 * <li></li>
@@ -432,7 +435,7 @@ public class DurationFormatter {
 				return formatters;
 			}
 		}
-		return null;
+		return Collections.singletonList((StringFormatter) new StringFormatter(format));
 	}
 
 	public String format(long millis) {
