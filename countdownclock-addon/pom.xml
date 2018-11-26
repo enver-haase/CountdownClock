@@ -5,7 +5,7 @@
 	<groupId>it.bonfiglioli</groupId>
 	<artifactId>countdownclock</artifactId>
 	<packaging>jar</packaging>
-	<version>2.1.11-SNAPSHOT</version>
+	<version>2.2.11-SNAPSHOT</version>
 	<name>CountdownClock Add-on</name>
 
 	<prerequisites>

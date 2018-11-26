@@ -1,8 +1,10 @@
 package org.vaadin.kim.countdownclock.client.ui;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import com.google.gwt.regexp.shared.MatchResult;
 import com.google.gwt.regexp.shared.RegExp;
@@ -15,6 +17,51 @@ public class DurationFormatter {
 	private static final int MINUTES = 60 * SECONDS;
 	private static final int HOURS = 60 * MINUTES;
 	private static final int DAYS = 24 * HOURS;
+
+	private static <T> boolean in(T value, T... values) {
+		for (T v : values) {
+			if (Objects.equals(v, value)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private static String join(String separator, Collection<String> strings) {
+		return join(separator, strings.toArray(new String[strings.size()]));
+	}
+
+	private static String join(String separator, String...strings) {
+		StringBuilder sb = new StringBuilder();
+		if(strings.length >= 1) {
+			sb.append(strings[0]);
+			for(int i = 1; i < strings.length; i++) {
+				sb.append(separator + strings[i]);
+			}
+		}
+		return sb.toString();
+	}
+	
+	private static String altRx(String string) {
+		List<String> res = new LinkedList<>();
+		for (String s : string.split("\\|")) {
+			for(String ss : alt(new String[] {s})) {
+				res.add(ss.replace("{", "\\{").replaceAll("}", "\\}"));
+			}
+		}
+		return join("|", res);
+	}
+
+	private static String[] alt(String... strings) {
+		List<String> ret = new LinkedList<>();
+		for (String s : strings) {
+			ret.add(s);
+			if (s.startsWith("%")) {
+				ret.add("%{" + s.substring(1) + "}");
+			}
+		}
+		return ret.toArray(new String[ret.size()]);
+	}
 
 	private static Integer minPrecision(List<Formatter> formatters) {
 		int min = Integer.MAX_VALUE;
@@ -233,7 +280,7 @@ public class DurationFormatter {
 	public DurationFormatter(String format) {
 
 		builders.add(new TockenMatcher() {
-			private static final String START_TOKEN = "%js{";
+			private static final String START_TOKEN = "%{js:";
 
 			@Override
 			public List<Formatter> compile(String format) {
@@ -288,26 +335,26 @@ public class DurationFormatter {
 				}
 			}
 		});
-		builders.add(new RegexMatcher("%nosign|%sign|%SIGN") {
+		builders.add(new RegexMatcher(altRx("%nosign|%sign|%SIGN")) {
 			@Override
 			protected Formatter buildFormatter(MatchResult match) {
-				if (match.getGroup(0).equals("%nosign")) {
+				if (in(match.getGroup(0), alt("%nosign"))) {
 					return new StringFormatter("");
 				} else {
-					return new SignFormatter(match.getGroup(0).equals("%sign"));
+					return new SignFormatter(in(match.getGroup(0), alt("%sign")));
 				}
 			}
 		});
-		builders.add(new RegexMatcher("%tts|%TTS|%ts|%TS") {
+		builders.add(new RegexMatcher(altRx("%tts|%TTS|%ts|%TS")) {
 			@Override
 			protected Formatter buildFormatter(MatchResult match) {
 				int digits;
-				if (match.getGroup(0).equals("%tts") || match.getGroup(0).equals("%TTS")) {
+				if (in(match.getGroup(0), alt("%tts", "%TTS"))) {
 					digits = 2;
 				} else {
 					digits = 1;
 				}
-				if (match.getGroup(0).equals("%ts") || match.getGroup(0).equals("%tts")) {
+				if (in(match.getGroup(0), alt("%ts", "%tts"))) {
 					return new TimeFormatter(THENTH_OF_SECONDS, digits) {
 						@Override
 						protected long getValue(long millis) {
@@ -325,16 +372,16 @@ public class DurationFormatter {
 				}
 			}
 		});
-		builders.add(new RegexMatcher("%ss|%SS|%s|%S") {
+		builders.add(new RegexMatcher(altRx("%ss|%SS|%s|%S")) {
 			@Override
 			protected Formatter buildFormatter(MatchResult match) {
 				int digits;
-				if (match.getGroup(0).equals("%ss") || match.getGroup(0).equals("%SS")) {
+				if (in(match.getGroup(0), alt("%ss", "%SS"))) {
 					digits = 2;
 				} else {
 					digits = 1;
 				}
-				if (match.getGroup(0).equals("%s") || match.getGroup(0).equals("%ss")) {
+				if (in(match.getGroup(0), alt("%s", "%ss"))) {
 					return new TimeFormatter(SECONDS, digits) {
 						@Override
 						protected long getValue(long millis) {
@@ -351,16 +398,16 @@ public class DurationFormatter {
 				}
 			}
 		});
-		builders.add(new RegexMatcher("%mm|%MM|%m|%M") {
+		builders.add(new RegexMatcher(altRx("%mm|%MM|%m|%M")) {
 			@Override
 			protected Formatter buildFormatter(MatchResult match) {
 				int digits;
-				if (match.getGroup(0).equals("%mm") || match.getGroup(0).equals("%MM")) {
+				if (in(match.getGroup(0), alt("%mm", "%MM"))) {
 					digits = 2;
 				} else {
 					digits = 1;
 				}
-				if (match.getGroup(0).equals("%m") || match.getGroup(0).equals("%mm")) {
+				if (in(match.getGroup(0), alt("%m", "%mm"))) {
 					return new TimeFormatter(MINUTES, digits) {
 						@Override
 						protected long getValue(long millis) {
@@ -377,16 +424,16 @@ public class DurationFormatter {
 				}
 			}
 		});
-		builders.add(new RegexMatcher("%hh|%HH|%h|%H") {
+		builders.add(new RegexMatcher(altRx("%hh|%HH|%h|%H")) {
 			@Override
 			protected Formatter buildFormatter(MatchResult match) {
 				int digits;
-				if (match.getGroup(0).equals("%hh") || match.getGroup(0).equals("%HH")) {
+				if (in(match.getGroup(0), alt("%hh", "%HH"))) {
 					digits = 2;
 				} else {
 					digits = 1;
 				}
-				if (match.getGroup(0).equals("%h") || match.getGroup(0).equals("%hh")) {
+				if (in(match.getGroup(0), alt("%h", "%hh"))) {
 					return new TimeFormatter(HOURS, digits) {
 						@Override
 						protected long getValue(long millis) {
@@ -403,7 +450,7 @@ public class DurationFormatter {
 				}
 			}
 		});
-		builders.add(new RegexMatcher("%d") {
+		builders.add(new RegexMatcher(altRx("%d|%D")) {
 			@Override
 			protected Formatter buildFormatter(MatchResult match) {
 				return new TimeFormatter(DAYS, 1) {
