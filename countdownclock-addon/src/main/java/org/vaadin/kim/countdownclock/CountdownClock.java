@@ -250,12 +250,6 @@ public class CountdownClock extends AbstractComponent {
 				} else {
 					setDirection(Direction.DOWN);
 				}
-			} else if (getDirection() == Direction.UP && getTargetTime() != null && initialTime > getTargetTime()) {
-				throw new IllegalArgumentException(
-						"If direction is UP, counterStart should be lesl than counterTarget");
-			} else if (getDirection() == Direction.DOWN && getTargetTime() != null && initialTime < getTargetTime()) {
-				throw new IllegalArgumentException(
-						"If direction is DOWN, counterStart should be greather than counterTarget");
 			}
 		}
 		super.beforeClientResponse(initial);
