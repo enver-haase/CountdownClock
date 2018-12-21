@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.gwt.regexp.shared.MatchResult;
 import com.google.gwt.regexp.shared.RegExp;
@@ -26,26 +28,26 @@ public class DurationFormatter {
 		}
 		return false;
 	}
-	
+
 	private static String join(String separator, Collection<String> strings) {
 		return join(separator, strings.toArray(new String[strings.size()]));
 	}
 
-	private static String join(String separator, String...strings) {
+	private static String join(String separator, String... strings) {
 		StringBuilder sb = new StringBuilder();
-		if(strings.length >= 1) {
+		if (strings.length >= 1) {
 			sb.append(strings[0]);
-			for(int i = 1; i < strings.length; i++) {
+			for (int i = 1; i < strings.length; i++) {
 				sb.append(separator + strings[i]);
 			}
 		}
 		return sb.toString();
 	}
-	
+
 	private static String altRx(String string) {
 		List<String> res = new LinkedList<>();
 		for (String s : string.split("\\|")) {
-			for(String ss : alt(new String[] {s})) {
+			for (String ss : alt(new String[] { s })) {
 				res.add(ss.replace("{", "\\{").replaceAll("}", "\\}"));
 			}
 		}
@@ -72,6 +74,114 @@ public class DurationFormatter {
 			}
 		}
 		return min != Integer.MAX_VALUE ? min : null;
+	}
+
+	private static Matcher match(String input, Pattern pattern) {
+		return match(input, pattern, 0);
+	}
+
+	private static Matcher match(String input, Pattern pattern, int index) {
+		Matcher matcher = pattern.matcher(input);
+		if (matcher.find(index)) {
+			return matcher;
+		} else {
+			return null;
+		}
+	}
+
+	private static class SingleMatchResult implements java.util.regex.MatchResult {
+
+		private final String string;
+		private final int start;
+		private final int end;
+		private final int groupStart;
+		private final int groupEnd;
+
+		public SingleMatchResult(String string, int start, int groupStart, int groupEnd, int end) {
+			super();
+			this.string = string;
+			this.start = start;
+			this.end = end;
+			this.groupStart = groupStart;
+			this.groupEnd = groupEnd;
+		}
+
+		@Override
+		public int start() {
+			return start;
+		}
+
+		@Override
+		public int start(int group) {
+			assert group == 0;
+			return groupStart;
+		}
+
+		@Override
+		public int end() {
+			return end;
+		}
+
+		@Override
+		public int end(int group) {
+			assert group == 0;
+			return groupEnd;
+		}
+
+		@Override
+		public String group() {
+			return string;
+		}
+
+		@Override
+		public String group(int group) {
+			if (group == 0) {
+				return string;
+			} else {
+				return string.substring(groupStart, groupEnd);
+			}
+		}
+
+		@Override
+		public int groupCount() {
+			return 1;
+		}
+
+	}
+
+	private static SingleMatchResult findOuterMatchingTockensContent(String string, Pattern startToken,
+			Pattern endToken) {
+		int start = -1;
+		int gStart = -1;
+		int gEnd = -1;
+		int end = -1;
+
+		int nestedPairs = 0;
+		for (int i = 0; i < string.length(); i++) {
+			Matcher matcher;
+			// startwith
+			if ((matcher = match(string, startToken, i)) != null && matcher.start() == i) {
+				if (nestedPairs == 0) {
+					start = i;
+					gStart = matcher.end(1);
+				}
+				nestedPairs = nestedPairs + 1;
+				i += matcher.end() - matcher.start() - 1;
+			} else if ((matcher = match(string, endToken, i)) != null && matcher.start() == i) {
+				nestedPairs = nestedPairs - 1;
+				if (nestedPairs == 0) {
+					end = matcher.end(1);
+					gEnd = matcher.start(1);
+					break;
+				}
+				i += matcher.end() - matcher.start() - 1;
+			}
+		}
+		if (start >= 0 && end > 0) {
+			return new SingleMatchResult(string, start, gStart, gEnd, end);
+		} else {
+			return null;
+		}
 	}
 
 	private interface Formatter {
@@ -144,11 +254,12 @@ public class DurationFormatter {
 		}
 	}
 
-	private class StringFormatter implements Formatter {
+	private static class StringFormatter implements Formatter {
 
 		private String string;
 
 		public StringFormatter(String string) {
+			assert string != null && !string.isEmpty();
 			this.string = string;
 		}
 
@@ -168,7 +279,7 @@ public class DurationFormatter {
 
 	}
 
-	private class JavaScriptFormatter implements Formatter {
+	private static class JavaScriptFormatter implements Formatter {
 
 		private List<Formatter> formatters;
 
@@ -196,7 +307,44 @@ public class DurationFormatter {
 
 	}
 
-	private abstract class TockenMatcher {
+	private static class OptionalFormatter implements Formatter {
+
+		private List<Formatter> formatters;
+
+		public OptionalFormatter(List<Formatter> formatters) {
+			this.formatters = formatters;
+		}
+
+		@Override
+		public String format(long millis) {
+			boolean optionalPresent = false;
+
+			StringBuilder sb = new StringBuilder();
+			for (Formatter f : formatters) {
+				String formatted = f.format(millis);
+				sb.append(formatted);
+				if (!formatted.equals(f.format(0))) {
+					optionalPresent = true;
+				}
+			}
+			if (optionalPresent == true) {
+				return sb.toString();
+			} else {
+				return "";
+			}
+		}
+
+		public native String eval(String arg) /*-{
+												return eval(arg);
+												}-*/;
+
+		public Integer getPrecision() {
+			return minPrecision(formatters);
+		};
+
+	}
+
+	private static abstract class TockenMatcher {
 		public abstract List<Formatter> compile(String format);
 	}
 
@@ -229,8 +377,10 @@ public class DurationFormatter {
 				previousMatch = match;
 			}
 			if (previousMatch != null) {
-				list.add(new StringFormatter(
-						format.substring(previousMatch.getIndex() + previousMatch.getGroup(0).length())));
+				int endIndex = previousMatch.getIndex() + previousMatch.getGroup(0).length() - 1;
+				if (endIndex < format.length() - 1) {
+					list.add(new StringFormatter(format.substring(endIndex + 1)));
+				}
 			}
 			if (!list.isEmpty()) {
 				return list;
@@ -240,6 +390,86 @@ public class DurationFormatter {
 		}
 
 		protected abstract Formatter buildFormatter(MatchResult match);
+
+	}
+
+	private abstract static class GroupPairMatcher extends TockenMatcher {
+		private final Pattern startPattern;
+		private final Pattern endPattern;
+
+		public GroupPairMatcher(Pattern startPattern, Pattern endPattern) {
+			super();
+			this.startPattern = startPattern;
+			this.endPattern = endPattern;
+		}
+
+		@Override
+		public List<Formatter> compile(String format) {
+			List<Formatter> list = new LinkedList<>();
+
+			Matcher matcher;
+			Matcher previousMatcher = null;
+			while ((matcher = match(format, startPattern)) != null) {
+				int startIndex = matcher.start();
+				if (startIndex > 0) {
+					list.add(new StringFormatter(format.substring(0, startIndex)));
+					format = format.substring(startIndex);
+				}
+
+				SingleMatchResult match = findOuterMatchingTockensContent(format, startPattern, endPattern);
+				if (match != null) {
+					list.add(createFormatter(match));
+					format = format.substring(match.end);
+				} else {
+					throw new IllegalArgumentException("formato non valido: '" + format + "'");
+				}
+				previousMatcher = matcher;
+			}
+			// tutto quello che rimane è una string
+			if (previousMatcher != null && !format.isEmpty()) {
+				list.add(new StringFormatter(format));
+			}
+
+			if (!list.isEmpty()) {
+				return list;
+			} else {
+				return null;
+			}
+		}
+
+		protected abstract Formatter createFormatter(SingleMatchResult match);
+	}
+
+	private static class JavaScriptMatcher extends GroupPairMatcher {
+		private static final Pattern START_PATTERN = Pattern.compile("(" + Pattern.quote("%js{") + ")");
+		private static final Pattern END_PATTERN = Pattern.compile("(" + Pattern.quote("}") + ")");
+		private DurationFormatter durationFormatter;
+
+		public JavaScriptMatcher(DurationFormatter durationFormatter) {
+			super(START_PATTERN, END_PATTERN);
+			this.durationFormatter = durationFormatter;
+		}
+
+		@Override
+		protected Formatter createFormatter(SingleMatchResult match) {
+			return new JavaScriptFormatter(durationFormatter.compile(match.group(1)));
+		}
+	}
+
+	private static class OptionalMatcher extends GroupPairMatcher {
+		private static final Pattern START_RX = Pattern.compile("(?:^|[^\\\\])(\\[)");
+		private static final Pattern END_RX = Pattern.compile("[^\\\\](\\])");
+		private final DurationFormatter durationFormatter;
+
+		public OptionalMatcher(DurationFormatter durationFormatter) {
+			super(START_RX, END_RX);
+			this.durationFormatter = durationFormatter;
+		}
+
+		@Override
+		protected Formatter createFormatter(SingleMatchResult match) {
+			return new OptionalFormatter(durationFormatter.compile(match.group(1)));
+		}
 
 	}
 
@@ -279,62 +509,8 @@ public class DurationFormatter {
 	 */
 	public DurationFormatter(String format) {
 
-		builders.add(new TockenMatcher() {
-			private static final String START_TOKEN = "%{js:";
+		builders.add(new JavaScriptMatcher(this));
 
-			@Override
-			public List<Formatter> compile(String format) {
-				List<Formatter> list = new LinkedList<>();
-
-				int startIndex = format.indexOf(START_TOKEN);
-				if (startIndex >= 0) {
-					list.add(new StringFormatter(format.substring(0, startIndex)));
-
-					startIndex += START_TOKEN.length();
-
-					String js = findOuterMatchingTockensContent(format.substring(startIndex - 1), "{", "}");
-					if (js != null) {
-						list.add(new JavaScriptFormatter(DurationFormatter.this.compile(js)));
-					} else {
-						list.add(new StringFormatter("!!formato errato!!"));
-					}
-				}
-
-				if (!list.isEmpty()) {
-					return list;
-				} else {
-					return null;
-				}
-			}
-
-			private String findOuterMatchingTockensContent(String string, String startToken, String endToken) {
-				int startIndex = -1;
-				int endIndex = -1;
-
-				int nestedPairs = 0;
-				for (int i = 0; i < string.length(); i++) {
-
-					if (string.startsWith(startToken, i)) {
-						if (nestedPairs == 0) {
-							startIndex = i;
-						}
-						nestedPairs = nestedPairs + 1;
-						i += startToken.length() - 1;
-					} else if (string.startsWith(endToken, i)) {
-						nestedPairs = nestedPairs - 1;
-						if (nestedPairs == 0) {
-							endIndex = i;
-						}
-						i += endToken.length() - 1;
-					}
-				}
-				if (startIndex >= 0 && endIndex > 0) {
-					return string.substring(startIndex + 1, endIndex);
-				} else {
-					return null;
-				}
-			}
-		});
 		builders.add(new RegexMatcher(altRx("%nosign|%sign|%SIGN")) {
 			@Override
 			protected Formatter buildFormatter(MatchResult match) {
@@ -345,6 +521,9 @@ public class DurationFormatter {
 				}
 			}
 		});
+
+		builders.add(new OptionalMatcher(this));
+
 		builders.add(new RegexMatcher(altRx("%tts|%TTS|%ts|%TS")) {
 			@Override
 			protected Formatter buildFormatter(MatchResult match) {
