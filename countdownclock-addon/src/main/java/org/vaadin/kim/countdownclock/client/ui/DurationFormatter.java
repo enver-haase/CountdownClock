@@ -1,12 +1,11 @@
 package org.vaadin.kim.countdownclock.client.ui;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.google.gwt.regexp.shared.MatchResult;
 import com.google.gwt.regexp.shared.RegExp;
@@ -76,81 +75,124 @@ public class DurationFormatter {
 		return min != Integer.MAX_VALUE ? min : null;
 	}
 
-	private static Matcher match(String input, Pattern pattern) {
-		return match(input, pattern, 0);
-	}
+	private static class Match {
 
-	private static Matcher match(String input, Pattern pattern, int index) {
-		Matcher matcher = pattern.matcher(input);
-		if (matcher.find(index)) {
-			return matcher;
-		} else {
-			return null;
-		}
-	}
-
-	private static class SingleMatchResult implements java.util.regex.MatchResult {
-
-		private final String string;
-		private final int start;
-		private final int end;
-		private final int groupStart;
-		private final int groupEnd;
-
-		public SingleMatchResult(String string, int start, int groupStart, int groupEnd, int end) {
-			super();
-			this.string = string;
-			this.start = start;
-			this.end = end;
-			this.groupStart = groupStart;
-			this.groupEnd = groupEnd;
+		public static Match build(MatchResult matchResult) {
+			return matchResult != null? new Match(matchResult.getInput(), matchResult, 0) : null;
 		}
 
-		@Override
-		public int start() {
-			return start;
+		private static Match build(String input, RegExp pattern, int startFromIndex) {
+			MatchResult match = pattern.exec(input.substring(startFromIndex));
+			return match != null ? new Match(input, match, startFromIndex) : null;
 		}
 
-		@Override
-		public int start(int group) {
-			assert group == 0;
-			return groupStart;
+		private String input;
+		private final MatchResult match;
+		private int startFromIndex;
+
+		public Match(String input, MatchResult match, int startFromIndex) {
+			this.input = input;
+			this.match = match;
+			assert match.getGroupCount() == 2 : match;
+			this.startFromIndex = startFromIndex;
 		}
 
-		@Override
-		public int end() {
-			return end;
+		private String group(int groupIndex) {
+			return match.getGroup(groupIndex);
 		}
 
-		@Override
-		public int end(int group) {
-			assert group == 0;
-			return groupEnd;
+		private int start() {
+			return start(0);
 		}
 
-		@Override
-		public String group() {
-			return string;
-		}
-
-		@Override
-		public String group(int group) {
-			if (group == 0) {
-				return string;
+		public int start(int groupIndex) {
+			if (groupIndex == 0) {
+				return startFromIndex + match.getIndex();
 			} else {
-				return string.substring(groupStart, groupEnd);
+				String group = group(groupIndex);
+				return startFromIndex + match.getInput().indexOf(group);
 			}
 		}
 
-		@Override
-		public int groupCount() {
-			return 1;
+		private int end() {
+			return end(0);
+		}
+
+		private int end(int groupIndex) {
+			return start(groupIndex) + group(groupIndex).length();
 		}
 
 	}
 
-	private static SingleMatchResult findOuterMatchingTockensContent(String string, Pattern startToken,
-			Pattern endToken) {
+	private static Match match(String input, RegExp pattern) {
+		return match(input, pattern, 0);
+	}
+
+	private static Match match(String input, RegExp pattern, int index) {
+		return Match.build(input, pattern, index);
+	}
+
+//	private static class SingleMatchResult {
+//
+//		private final String string;
+//		private final int start;
+//		private final int end;
+//		private final int groupStart;
+//		private final int groupEnd;
+//
+//		public SingleMatchResult(String string, int start, int groupStart, int groupEnd, int end) {
+//			super();
+//			this.string = string;
+//			this.start = start;
+//			this.end = end;
+//			this.groupStart = groupStart;
+//			this.groupEnd = groupEnd;
+//		}
+//
+//		@Override
+//		public int start() {
+//			return start;
+//		}
+//
+//		@Override
+//		public int start(int group) {
+//			assert group == 0;
+//			return groupStart;
+//		}
+//
+//		@Override
+//		public int end() {
+//			return end;
+//		}
+//
+//		@Override
+//		public int end(int group) {
+//			assert group == 0;
+//			return groupEnd;
+//		}
+//
+//		@Override
+//		public String group() {
+//			return string;
+//		}
+//
+//		@Override
+//		public String group(int group) {
+//			if (group == 0) {
+//				return string;
+//			} else {
+//				return string.substring(groupStart, groupEnd);
+//			}
+//		}
+//
+//		@Override
+//		public int groupCount() {
+//			return 1;
+//		}
+//
+//	}
+
+	private static Match findOuterMatchingTockensContent(String string, RegExp startToken, RegExp endToken) {
 		int start = -1;
 		int gStart = -1;
 		int gEnd = -1;
@@ -158,27 +200,32 @@ public class DurationFormatter {
 
 		int nestedPairs = 0;
 		for (int i = 0; i < string.length(); i++) {
-			Matcher matcher;
+			Match match;
 			// startwith
-			if ((matcher = match(string, startToken, i)) != null && matcher.start() == i) {
+			if ((match = match(string, startToken, i)) != null && match.start() == i) {
 				if (nestedPairs == 0) {
 					start = i;
-					gStart = matcher.end(1);
+					gStart = match.end(1);
 				}
 				nestedPairs = nestedPairs + 1;
-				i += matcher.end() - matcher.start() - 1;
-			} else if ((matcher = match(string, endToken, i)) != null && matcher.start() == i) {
+				i += match.end() - match.start() - 1;
+			} else if ((match = match(string, endToken, i)) != null && match.start() == i) {
 				nestedPairs = nestedPairs - 1;
 				if (nestedPairs == 0) {
-					end = matcher.end(1);
-					gEnd = matcher.start(1);
+					end = match.end(1);
+					gEnd = match.start(1);
 					break;
 				}
-				i += matcher.end() - matcher.start() - 1;
+				i += match.end() - match.start() - 1;
 			}
 		}
 		if (start >= 0 && end > 0) {
-			return new SingleMatchResult(string, start, gStart, gEnd, end);
+			String preGroup = string.substring(start, gStart);
+			String group = string.substring(gStart, gEnd);
+			String postGroup = string.substring(gEnd, end);
+			String pattern = RegExp.quote(preGroup)+"("+RegExp.quote(group)+")"+RegExp.quote(postGroup);
+			MatchResult match = RegExp.compile(pattern).exec(string);
+			return Match.build(match);
 		} else {
 			return null;
 		}
@@ -394,10 +441,10 @@ public class DurationFormatter {
 	}
 
 	private abstract static class GroupPairMatcher extends TockenMatcher {
-		private final Pattern startPattern;
-		private final Pattern endPattern;
+		private final RegExp startPattern;
+		private final RegExp endPattern;
 
-		public GroupPairMatcher(Pattern startPattern, Pattern endPattern) {
+		public GroupPairMatcher(RegExp startPattern, RegExp endPattern) {
 			super();
 			this.startPattern = startPattern;
 			this.endPattern = endPattern;
@@ -407,26 +454,26 @@ public class DurationFormatter {
 		public List<Formatter> compile(String format) {
 			List<Formatter> list = new LinkedList<>();
 
-			Matcher matcher;
-			Matcher previousMatcher = null;
-			while ((matcher = match(format, startPattern)) != null) {
-				int startIndex = matcher.start();
+			Match match;
+			Match previousMatch = null;
+			while ((match = match(format, startPattern)) != null) {
+				int startIndex = match.start();
 				if (startIndex > 0) {
 					list.add(new StringFormatter(format.substring(0, startIndex)));
 					format = format.substring(startIndex);
 				}
 
-				SingleMatchResult match = findOuterMatchingTockensContent(format, startPattern, endPattern);
-				if (match != null) {
-					list.add(createFormatter(match));
-					format = format.substring(match.end);
+				Match sMatch = findOuterMatchingTockensContent(format, startPattern, endPattern);
+				if (sMatch != null) {
+					list.add(createFormatter(sMatch));
+					format = format.substring(sMatch.end());
 				} else {
 					throw new IllegalArgumentException("formato non valido: '" + format + "'");
 				}
-				previousMatcher = matcher;
+				previousMatch = match;
 			}
 			// tutto quello che rimane è una string
-			if (previousMatcher != null && !format.isEmpty()) {
+			if (previousMatch != null && !format.isEmpty()) {
 				list.add(new StringFormatter(format));
 			}
 
@@ -437,12 +484,12 @@ public class DurationFormatter {
 			}
 		}
 
-		protected abstract Formatter createFormatter(SingleMatchResult match);
+		protected abstract Formatter createFormatter(Match match);
 	}
 
 	private static class JavaScriptMatcher extends GroupPairMatcher {
-		private static final Pattern START_PATTERN = Pattern.compile("(" + Pattern.quote("%js{") + ")");
-		private static final Pattern END_PATTERN = Pattern.compile("(" + Pattern.quote("}") + ")");
+		private static final RegExp START_PATTERN = RegExp.compile("(" + RegExp.quote("%js{") + ")");
+		private static final RegExp END_PATTERN = RegExp.compile("(" + RegExp.quote("}") + ")");
 		private DurationFormatter durationFormatter;
 
 		public JavaScriptMatcher(DurationFormatter durationFormatter) {
@@ -451,14 +498,14 @@ public class DurationFormatter {
 		}
 
 		@Override
-		protected Formatter createFormatter(SingleMatchResult match) {
+		protected Formatter createFormatter(Match match) {
 			return new JavaScriptFormatter(durationFormatter.compile(match.group(1)));
 		}
 	}
 
 	private static class OptionalMatcher extends GroupPairMatcher {
-		private static final Pattern START_RX = Pattern.compile("(?:^|[^\\\\])(\\[)");
-		private static final Pattern END_RX = Pattern.compile("[^\\\\](\\])");
+		private static final RegExp START_RX = RegExp.compile("(?:^|[^\\\\])(\\[)");
+		private static final RegExp END_RX = RegExp.compile("[^\\\\](\\])");
 		private final DurationFormatter durationFormatter;
 
 		public OptionalMatcher(DurationFormatter durationFormatter) {
@@ -467,7 +514,7 @@ public class DurationFormatter {
 		}
 
 		@Override
-		protected Formatter createFormatter(SingleMatchResult match) {
+		protected Formatter createFormatter(Match match) {
 			return new OptionalFormatter(durationFormatter.compile(match.group(1)));
 		}
 
