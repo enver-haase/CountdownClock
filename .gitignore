@@ -2,6 +2,7 @@
 .project
 .settings/
 src/rebel.xml
-build
+target
 WebContent/VAADIN/widgetsets
-GWT development mode for CountdownClock.launch
+pom.xml.releaseBackup
+release.properties
